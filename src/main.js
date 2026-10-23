@@ -283,7 +283,7 @@ function triggerWave(agentHandle){
 window.triggerWave=triggerWave;
 function focus(id){const {D}=rooms[id];document.querySelectorAll('#pills .pill').forEach(p=>p.classList.toggle('on',p.dataset.id===id));
  const dist=Math.max(D.w,D.d)*1.05+3.8;tgt={t:new THREE.Vector3(D.x,1.1,D.z),p:new THREE.Vector3(D.x+dist*.62,dist*.92,D.z+dist*.62)};
- SWAY=false;rot.classList.remove('on');
+ SWAY=false;rot?.classList.remove('on');
  card.innerHTML=`<h3 style="color:${D.color}">${D.name}</h3><div class="sub">${D.qa?'Human-in-the-loop':D.agents.length+' AI agent'+(D.agents.length>1?'s':'')} · Daniel's Agent Office</div>`+D.agents.map(([n,r])=>`<div class="ag" onclick="window.triggerWave&&window.triggerWave('${n}')" style="cursor:pointer" title="Click to interact"><span class="dot" style="background:${D.color}"></span><div><b>${n}</b><p>${r}</p></div></div>`).join('');
  card.classList.add('show');
  if(charMode==='robot'&&D.agents.length>0)triggerWave(D.agents[0][0]);
@@ -295,15 +295,16 @@ if(mrob&&mhum){
  mrob.onclick=()=>{const u=new URL(location.href);u.searchParams.set('chars','robot');location.href=u.toString();};
  mhum.onclick=()=>{const u=new URL(location.href);u.searchParams.set('chars','human');location.href=u.toString();};
 }
-const rot=ROOT.querySelector('#rot');rot.onclick=()=>{SWAY=!SWAY;rot.classList.toggle('on',SWAY);};
-ROOT.querySelector('#home').onclick=()=>{tgt={t:new THREE.Vector3(),p:new THREE.Vector3(27,24,27)};card.classList.remove('show');document.querySelectorAll('#pills .pill').forEach(p=>p.classList.remove('on'));};
+const rot=ROOT.querySelector('#rot'),home=ROOT.querySelector('#home');
+if(rot)rot.onclick=()=>{SWAY=!SWAY;rot.classList.toggle('on',SWAY);};
+if(home)home.onclick=()=>{tgt={t:new THREE.Vector3(),p:new THREE.Vector3(27,24,27)};card.classList.remove('show');document.querySelectorAll('#pills .pill').forEach(p=>p.classList.remove('on'));};
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let down;
-renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY,performance.now()];tgt=null;SWAY=false;rot.classList.remove('on');});
+renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY,performance.now()];tgt=null;SWAY=false;rot?.classList.remove('on');});
 renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>=5||performance.now()-down[2]>300){down=null;return;}down=null;
  {const r=renderer.domElement.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);}ray.setFromCamera(mv,camera);
  const h=ray.intersectObjects(Object.values(rooms).map(r=>r.g),true)[0];
  if(h){let o=h.object;while(o&&!Object.values(rooms).some(r=>r.g===o))o=o.parent;if(o)focus(Object.keys(rooms).find(k=>rooms[k].g===o));}});
-controls.addEventListener('start',()=>{tgt=null;SWAY=false;rot.classList.remove('on');});
+controls.addEventListener('start',()=>{tgt=null;SWAY=false;rot?.classList.remove('on');});
 
 const onResize=()=>{const [w,h]=SZ();camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);composer.setSize(w,h);lr.setSize(w,h);};
 new ResizeObserver(onResize).observe(ROOT);
