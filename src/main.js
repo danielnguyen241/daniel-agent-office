@@ -98,8 +98,19 @@ const loader=new GLTFLoader(),A={};
 const NAMES=['plantSmall2','desk','chairDesk','computerScreen','computerKeyboard','computerMouse','pottedPlant','plantSmall1','loungeDesignSofa','bookcaseOpen','bookcaseClosedDoors','speaker','rugRectangle','rugRound','tableCoffee','laptop','books','loungeChair','televisionModern'];
 await Promise.all(NAMES.map(n=>loader.loadAsync(BASE+'assets/'+n+'.glb').then(g=>A[n]=g.scene)));
 const CN=['male-a','female-a','male-b','female-b','male-c','female-c','male-d','female-d','male-e','female-e','male-f','female-f'];
-A.chars=await Promise.all(CN.map(n=>loader.loadAsync(BASE+'assets/chars/character-'+n+'.glb')));
-A.glasses=(await loader.loadAsync(BASE+'assets/chars/aid-glasses.glb')).scene;A.sun=(await loader.loadAsync(BASE+'assets/chars/aid-sunglasses.glb')).scene;
+const charParam=new URLSearchParams(location.search).get('chars');
+const charMode=charParam==='human'?'human':'robot'; // Default to 3D AI Agents (robot)
+const [charsLoaded,glassesLoaded,sunLoaded,robotLoaded]=await Promise.all([
+  Promise.all(CN.map(n=>loader.loadAsync(BASE+'assets/chars/character-'+n+'.glb'))),
+  loader.loadAsync(BASE+'assets/chars/aid-glasses.glb'),
+  loader.loadAsync(BASE+'assets/chars/aid-sunglasses.glb'),
+  loader.loadAsync(BASE+'assets/chars/RobotExpressive.glb')
+]);
+A.chars=charsLoaded;
+A.glasses=glassesLoaded.scene;
+A.sun=sunLoaded.scene;
+A.robot=robotLoaded;
+const robotMap={};
 let AG=0;
 
 const CH_Y=0,CH_Z=.85,SCREEN_Y=window.SY??.62,SCREEN_Z=window.SZ??.1;const TAGS=[],WORKERS=[],BUBBLES=[],SCREENS=[],LEDS=[];
@@ -139,7 +150,7 @@ DEPTS.forEach((D,di)=>{
  // door faces center
  const dz=D.z===0?0:-Math.sign(D.z),dx=D.z===0?-Math.sign(D.x):0;
  half(D.w,0,-D.d/2,0,dz===-1);half(D.w,0,D.d/2,0,dz===1);half(D.d,-D.w/2,0,Math.PI/2,dx===-1);half(D.d,D.w/2,0,Math.PI/2,dx===1);
- const rl=new THREE.Object3D();rl.position.set(0,1.5,-D.d/2);g.add(rl);label(`<i style="background:${D.color}"></i>${D.name}`,'room',0,rl).style.setProperty('--c',D.color);
+ const rl=new THREE.Object3D();const lx=D.id==='hq'?-2.2:0;rl.position.set(lx,1.8,-D.d/2);g.add(rl);label(`<i style="background:${D.color}"></i>${D.name}`,'room',0,rl).style.setProperty('--c',D.color);
  // desks (Kenney CC0 models) + robot agents (Quaternius-style RobotExpressive CC0)
  const n=D.qa?1:D.agents.length;const cols=n>2?2:n;const rows=Math.ceil(n/cols);
  for(let i=0;i<n;i++){const c=i%cols,r=Math.floor(i/cols);
@@ -153,28 +164,49 @@ DEPTS.forEach((D,di)=>{
   const chair=put('chairDesk',.75,dk,0,0,.95,Math.PI);
   if(D.qa){put('laptop',.5,dk,.5,top,0);continue;}
   dk.rotation.y=-Math.PI/2;
-  const k=AG++;const C=A.chars[k%A.chars.length];const ch=SkeletonUtils.clone(C.scene);
-  const tint=new THREE.Color('#ffffff').lerp(new THREE.Color(D.color),.3);
-  ch.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material=o.material.clone();o.material.envMapIntensity=.35;o.material.roughness=.8;if(o.name.startsWith('body'))o.material.color.copy(tint);}});
-  const bb=new THREE.Box3().setFromObject(ch);const H=bb.max.y-bb.min.y;const sc=(window.CHS??1.5)/H;ch.scale.setScalar(sc);
-  ch.position.set(0,0,.95);ch.rotation.y=Math.PI+(window.SR??0);dk.add(ch);ch.userData.dyn=true;
-  scene.updateMatrixWorld(true);const head=ch.getObjectByName('head');const acc=ACC[k%ACC.length];
-  const hm=ch.getObjectByName('head-mesh');const hb=new THREE.Box3().setFromObject(hm);ch.updateMatrixWorld(true);
-  const hw=head.getWorldPosition(new THREE.Vector3());
-  acc(head,(hb.max.y-hw.y)/sc*0+ (hb.max.y-hb.min.y)*0, D.color, hb, hw);
-  const mx=new THREE.AnimationMixer(ch);const clip=C.animations.find(a=>a.name==='sit').clone();clip.tracks=clip.tracks.filter(tr=>!tr.name.startsWith('arm'));
-  const act=mx.clipAction(clip);act.play();mx.update(0);mixers.push(mx);
-  // sit exactly on the seat: raycast the chair for the seat surface, align the hip joints to it
-  scene.updateMatrixWorld(true);const cw=chair.getWorldPosition(new THREE.Vector3());
-  const hit=new THREE.Raycaster(new THREE.Vector3(cw.x,cw.y+4,cw.z),new THREE.Vector3(0,-1,0)).intersectObject(chair,true)[0];
-  const seatW=hit?hit.point.y:cw.y+.45;const hipL=ch.getObjectByName('leg-left'),hipR=ch.getObjectByName('leg-right');
-  const hp=hipL.getWorldPosition(new THREE.Vector3()).add(hipR.getWorldPosition(new THREE.Vector3())).multiplyScalar(.5);
-  const dl=dk.worldToLocal(hp.clone()),cl=dk.worldToLocal(cw.clone());
-  ch.position.y+=(seatW-hp.y)+.04*sc/0.2*0+.03;ch.position.x+=cl.x-dl.x;ch.position.z+=cl.z-dl.z;
-  WORKERS.push({ch,k,role:D.id,arms:[ch.getObjectByName('arm-left'),ch.getObjectByName('arm-right')],head:ch.getObjectByName('head'),torso:ch.getObjectByName('torso'),ph:k*1.37,drv:new Set(clip.tracks.map(tr=>tr.name.split('.')[0]))});
-  const lo=new THREE.Object3D();lo.position.set(0,2.1,.85);dk.add(lo);TAGS.push({el:label(D.agents[i][0],'lbl',0,lo),room:D.id,o:lo});
-  const bo=new THREE.Object3D();bo.position.set(0,2.55,.85);dk.add(bo);BUBBLES.push({el:label('','bubble',0,bo),role:D.id,k,o:bo});
-  SCREENS.push({mon,kind:D.studio?2:(D.id==='tech'||D.id==='auth'?1:0)});
+  const agentHandle=D.agents[i][0];const k=AG++;
+  if(charMode==='robot'){
+   const ch=SkeletonUtils.clone(A.robot.scene);
+   const tint=new THREE.Color(D.color);
+   ch.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material=o.material.clone();o.material.envMapIntensity=.45;o.material.roughness=.55;
+    if(/head|torso|body/i.test(o.name))o.material.color.lerp(tint,.5);}});
+   const bb=new THREE.Box3().setFromObject(ch);const H=bb.max.y-bb.min.y;const sc=1.38/H;ch.scale.setScalar(sc);
+   ch.position.set(0,.54,.96);ch.rotation.y=Math.PI;dk.add(ch);ch.userData.dyn=true;
+   const mx=new THREE.AnimationMixer(ch);
+   const sitClip=A.robot.animations.find(a=>a.name==='Sitting')||A.robot.animations.find(a=>a.name==='Idle');
+   const waveClip=A.robot.animations.find(a=>a.name==='Wave')||A.robot.animations.find(a=>a.name==='ThumbsUp');
+   const sitAction=mx.clipAction(sitClip);sitAction.play();mixers.push(mx);
+   let waveAction=null;
+   if(waveClip){waveAction=mx.clipAction(waveClip);waveAction.loop=THREE.LoopOnce;waveAction.clampWhenFinished=true;}
+   robotMap[agentHandle]={ch,mx,sitAction,waveAction};
+   const head=ch.getObjectByName('Head');
+   WORKERS.push({ch,k,role:D.id,isRobot:true,head,ph:k*1.37});
+   const lo=new THREE.Object3D();lo.position.set(0,2.15,.96);dk.add(lo);TAGS.push({el:label(agentHandle,'lbl',0,lo),room:D.id,o:lo});
+   const bo=new THREE.Object3D();bo.position.set(0,2.6,.96);dk.add(bo);BUBBLES.push({el:label('','bubble',0,bo),role:D.id,k,o:bo});
+   SCREENS.push({mon,kind:D.studio?2:(D.id==='tech'||D.id==='auth'?1:0)});
+  }else{
+   const C=A.chars[k%A.chars.length];const ch=SkeletonUtils.clone(C.scene);
+   const tint=new THREE.Color('#ffffff').lerp(new THREE.Color(D.color),.3);
+   ch.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material=o.material.clone();o.material.envMapIntensity=.35;o.material.roughness=.8;if(o.name.startsWith('body'))o.material.color.copy(tint);}});
+   const bb=new THREE.Box3().setFromObject(ch);const H=bb.max.y-bb.min.y;const sc=(window.CHS??1.5)/H;ch.scale.setScalar(sc);
+   ch.position.set(0,0,.95);ch.rotation.y=Math.PI+(window.SR??0);dk.add(ch);ch.userData.dyn=true;
+   scene.updateMatrixWorld(true);const head=ch.getObjectByName('head');const acc=ACC[k%ACC.length];
+   const hm=ch.getObjectByName('head-mesh');const hb=new THREE.Box3().setFromObject(hm);ch.updateMatrixWorld(true);
+   const hw=head.getWorldPosition(new THREE.Vector3());
+   acc(head,(hb.max.y-hw.y)/sc*0+ (hb.max.y-hb.min.y)*0, D.color, hb, hw);
+   const mx=new THREE.AnimationMixer(ch);const clip=C.animations.find(a=>a.name==='sit').clone();clip.tracks=clip.tracks.filter(tr=>!tr.name.startsWith('arm'));
+   const act=mx.clipAction(clip);act.play();mixers.push(mx);
+   scene.updateMatrixWorld(true);const cw=chair.getWorldPosition(new THREE.Vector3());
+   const hit=new THREE.Raycaster(new THREE.Vector3(cw.x,cw.y+4,cw.z),new THREE.Vector3(0,-1,0)).intersectObject(chair,true)[0];
+   const seatW=hit?hit.point.y:cw.y+.45;const hipL=ch.getObjectByName('leg-left'),hipR=ch.getObjectByName('leg-right');
+   const hp=hipL.getWorldPosition(new THREE.Vector3()).add(hipR.getWorldPosition(new THREE.Vector3())).multiplyScalar(.5);
+   const dl=dk.worldToLocal(hp.clone()),cl=dk.worldToLocal(cw.clone());
+   ch.position.y+=(seatW-hp.y)+.04*sc/0.2*0+.03;ch.position.x+=cl.x-dl.x;ch.position.z+=cl.z-dl.z;
+   WORKERS.push({ch,k,role:D.id,isRobot:false,arms:[ch.getObjectByName('arm-left'),ch.getObjectByName('arm-right')],head:ch.getObjectByName('head'),torso:ch.getObjectByName('torso'),ph:k*1.37,drv:new Set(clip.tracks.map(tr=>tr.name.split('.')[0]))});
+   const lo=new THREE.Object3D();lo.position.set(0,2.1,.85);dk.add(lo);TAGS.push({el:label(agentHandle,'lbl',0,lo),room:D.id,o:lo});
+   const bo=new THREE.Object3D();bo.position.set(0,2.55,.85);dk.add(bo);BUBBLES.push({el:label('','bubble',0,bo),role:D.id,k,o:bo});
+   SCREENS.push({mon,kind:D.studio?2:(D.id==='tech'||D.id==='auth'?1:0)});
+  }
  }
  // extras
  if(!D.qa){put('pottedPlant',.6,g,D.w/2-.6,.12,-D.d/2+.6);put('pottedPlant',.6,g,-D.w/2+.6,.12,D.d/2-.6);
@@ -186,11 +218,11 @@ DEPTS.forEach((D,di)=>{
   m.add(box(.05,1.3,.05,mat('#444'),0,.65,-.4,.02));const mc=new THREE.Mesh(new THREE.CapsuleGeometry(.1,.18,6,14),mat('#2b2b30',{metalness:.7,roughness:.25}));mc.position.set(0,1.38,-.4);mc.rotation.x=.5;m.add(mc);
   put('speaker',.45,m,-.75,0,-.5);put('speaker',.45,m,.75,0,-.5);}
  if(D.studio){  put('televisionModern',1.6,g,0,.12,-D.d/2+.4);}
- if(D.id==='hq'){put('loungeDesignSofa',2.2,g,-1.6,.12,2.2,Math.PI);put('tableCoffee',1,g,-1.6,.12,1.2);}
+ if(D.id==='hq'){put('loungeDesignSofa',2.0,g,3.2,.12,1.8,-Math.PI/2);put('tableCoffee',.9,g,2.0,.12,1.8);}
  if(D.qa){put('loungeChair',.9,g,-1.4,.12,1.9,Math.PI*.8);put('pottedPlant',.6,g,2,.12,2.3);}
 });
 
-RECEPTION_PUT();{const o=new THREE.Object3D();o.position.set(0,3.4,-3.2);rec.add(o);label('<i style="background:#3a3330"></i>Reception','room',0,o).style.setProperty('--c','#3a3330');}
+RECEPTION_PUT();{const o=new THREE.Object3D();o.position.set(.5,3.6,-1.0);rec.add(o);label('<i style="background:#3a3330"></i>Reception','room',0,o).style.setProperty('--c','#3a3330');}
 // ================= office life =================
 // shared animated monitor textures (code / chart / waveform), redrawn ~8 fps
 const SCR=[0,1,2].map(()=>{const c=document.createElement('canvas');c.width=192;c.height=120;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return {c,x:c.getContext('2d'),t};});
@@ -218,7 +250,9 @@ const WALK=[];function walkTick(){}
 let lastScr=0,lastLed=0;
 function LIFE(t,dt){
  // procedural typing / head turns / stretch on top of the sit pose
- WORKERS.forEach(W=>{const p=W.ph;const o=W.o||(W.o={tx:0,hy:0,a0:0,a1:0});
+ WORKERS.forEach(W=>{const p=W.ph;
+  if(W.isRobot){if(W.head)W.head.rotation.y=Math.sin(t*.6+p)*.14;return;}
+  const o=W.o||(W.o={tx:0,hy:0,a0:0,a1:0});
   const n={tx:Math.sin(t*1.6+p)*.012,hy:Math.sin(t*.35+p)*.06,a0:Math.max(0,Math.sin(t*9+p))*.035,a1:Math.max(0,Math.sin(t*9+p+2.1))*.035};
   const ap=(b,ax,k)=>{if(!b)return;b.rotation[ax]+=W.drv.has(b.name)?n[k]:n[k]-o[k];};
   ap(W.torso,'x','tx');ap(W.head,'y','hy');{const Z=window.AZ??.78,v0=(window.AX??-.95)+n.a0,v1=(window.AX??-.95)+n.a1;W.arms[0].rotation.set(v0,0,-Z);W.arms[1].rotation.set(v1,0,Z);}W.o=n;});
@@ -239,11 +273,28 @@ const dust=new THREE.Points(pg,new THREE.PointsMaterial({color:'#ffd9a0',size:.1
 const pills=ROOT.querySelector('#pills'),card=ROOT.querySelector('#card');
 DEPTS.forEach(D=>{const b=document.createElement('button');b.className='pill';b.dataset.id=D.id;b.innerHTML=`<i style="background:${D.color}"></i>${D.name.replace("Daniel's ",'')}`;b.onclick=()=>focus(D.id);pills.appendChild(b);});
 let tgt=null;
+let activeWave=null;
+function triggerWave(agentHandle){
+ const bot=robotMap[agentHandle];if(!bot||!bot.waveAction)return;
+ if(activeWave&&activeWave!==bot.waveAction){activeWave.stop();}
+ bot.sitAction.crossFadeTo(bot.waveAction,.2,false);bot.waveAction.reset().play();activeWave=bot.waveAction;
+ setTimeout(()=>{if(bot.waveAction&&bot.sitAction){bot.waveAction.crossFadeTo(bot.sitAction,.35,false);activeWave=null;}},2400);
+}
+window.triggerWave=triggerWave;
 function focus(id){const {D}=rooms[id];document.querySelectorAll('#pills .pill').forEach(p=>p.classList.toggle('on',p.dataset.id===id));
- const dist=Math.max(D.w,D.d)*1.1+4;tgt={t:new THREE.Vector3(D.x,0,D.z),p:new THREE.Vector3(D.x+dist*.7,dist*.85,D.z+dist*.7)};
+ const dist=Math.max(D.w,D.d)*1.05+3.8;tgt={t:new THREE.Vector3(D.x,1.1,D.z),p:new THREE.Vector3(D.x+dist*.62,dist*.92,D.z+dist*.62)};
  SWAY=false;rot.classList.remove('on');
- card.innerHTML=`<h3 style="color:${D.color}">${D.name}</h3><div class="sub">${D.qa?'Human-in-the-loop':D.agents.length+' AI agent'+(D.agents.length>1?'s':'')} · Daniel's Agent Office</div>`+D.agents.map(([n,r])=>`<div class="ag"><span class="dot" style="background:${D.color}"></span><div><b>${n}</b><p>${r}</p></div></div>`).join('');
- card.classList.add('show');}
+ card.innerHTML=`<h3 style="color:${D.color}">${D.name}</h3><div class="sub">${D.qa?'Human-in-the-loop':D.agents.length+' AI agent'+(D.agents.length>1?'s':'')} · Daniel's Agent Office</div>`+D.agents.map(([n,r])=>`<div class="ag" onclick="window.triggerWave&&window.triggerWave('${n}')" style="cursor:pointer" title="Click to interact"><span class="dot" style="background:${D.color}"></span><div><b>${n}</b><p>${r}</p></div></div>`).join('');
+ card.classList.add('show');
+ if(charMode==='robot'&&D.agents.length>0)triggerWave(D.agents[0][0]);
+}
+const mrob=ROOT.querySelector('#mrob'),mhum=ROOT.querySelector('#mhum');
+if(mrob&&mhum){
+ if(charMode==='robot'){mrob.classList.add('on');mhum.classList.remove('on');}
+ else{mhum.classList.add('on');mrob.classList.remove('on');}
+ mrob.onclick=()=>{const u=new URL(location.href);u.searchParams.set('chars','robot');location.href=u.toString();};
+ mhum.onclick=()=>{const u=new URL(location.href);u.searchParams.set('chars','human');location.href=u.toString();};
+}
 const rot=ROOT.querySelector('#rot');rot.onclick=()=>{SWAY=!SWAY;rot.classList.toggle('on',SWAY);};
 ROOT.querySelector('#home').onclick=()=>{tgt={t:new THREE.Vector3(),p:new THREE.Vector3(27,24,27)};card.classList.remove('show');document.querySelectorAll('#pills .pill').forEach(p=>p.classList.remove('on'));};
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let down;
