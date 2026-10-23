@@ -99,7 +99,7 @@ const NAMES=['plantSmall2','desk','chairDesk','computerScreen','computerKeyboard
 await Promise.all(NAMES.map(n=>loader.loadAsync(BASE+'assets/'+n+'.glb').then(g=>A[n]=g.scene)));
 const CN=['male-a','female-a','male-b','female-b','male-c','female-c','male-d','female-d','male-e','female-e','male-f','female-f'];
 const charParam=new URLSearchParams(location.search).get('chars');
-const charMode=charParam==='human'?'human':'robot'; // Default to 3D AI Agents (robot)
+const charMode=charParam==='robot'?'robot':'human';
 const [charsLoaded,glassesLoaded,sunLoaded,robotLoaded]=await Promise.all([
   Promise.all(CN.map(n=>loader.loadAsync(BASE+'assets/chars/character-'+n+'.glb'))),
   loader.loadAsync(BASE+'assets/chars/aid-glasses.glb'),
@@ -170,8 +170,8 @@ DEPTS.forEach((D,di)=>{
    const tint=new THREE.Color(D.color);
    ch.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material=o.material.clone();o.material.envMapIntensity=.45;o.material.roughness=.55;
     if(/head|torso|body/i.test(o.name))o.material.color.lerp(tint,.5);}});
-   const bb=new THREE.Box3().setFromObject(ch);const H=bb.max.y-bb.min.y;const sc=1.38/H;ch.scale.setScalar(sc);
-   ch.position.set(0,.54,.96);ch.rotation.y=Math.PI;dk.add(ch);ch.userData.dyn=true;
+   const sc=0.55;ch.scale.setScalar(sc);
+   ch.position.set(0,.48,.95);ch.rotation.y=Math.PI;dk.add(ch);ch.userData.dyn=true;
    const mx=new THREE.AnimationMixer(ch);
    const sitClip=A.robot.animations.find(a=>a.name==='Sitting')||A.robot.animations.find(a=>a.name==='Idle');
    const waveClip=A.robot.animations.find(a=>a.name==='Wave')||A.robot.animations.find(a=>a.name==='ThumbsUp');
