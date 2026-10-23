@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>daniel.ai — Agent Office</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/office.css">
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#f6efe6}</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<section id="agent-office" data-standalone>
+<header class="glass"><div class="brand">daniel.ai <span>— Agent Office</span></div><div class="pills" id="pills"></div><div class="mode"><button class="pill on" id="m3d">3D Office</button><button class="pill" id="msp">Spline</button></div></header>
+<div id="spline"><div class="ph glass"><div class="ic">✦</div><h2>Spline scene coming soon</h2><p>A hand-crafted Spline version of Daniel's Agent Office is in the works.<br>Set <code>SPLINE_URL</code> in <code>spline.js</code> or open with <code>?spline=&lt;scene.splinecode URL&gt;</code>.</p></div></div>
+<div class="hint">Click to interact · Ctrl+scroll to zoom</div>
+<div id="loading">Loading Daniel's Agent Office…</div>
+<div id="foot">Daniel Nguyen · SEO / Growth / Media — 14 AI agents across 5 departments</div>
+<div id="card" class="glass"></div>
+<div id="ctl" class="glass"><button class="pill on" id="rot">⟳ Auto-rotate</button><button class="pill" id="home">⌂ Overview</button></div>
+</section>
+<script type="module" src="src/main.js"></script>
+<script type="module" src="src/spline.js"></script>
+</body></html>
