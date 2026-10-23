@@ -161,7 +161,7 @@ DEPTS.forEach((D,di)=>{
   put('computerKeyboard',.55,dk,0,top,.2,0);put('computerMouse',.1,dk,.45,top,.22);
   if(D.studio){put('computerScreen',.6,dk,.95,top,-.3,-.35);put('computerScreen',.6,dk,-.95,top,-.3,.35);}
   if(i%2)put('books',.35,dk,.75,top,-.15); else put('plantSmall1',.28,dk,.8,top,-.15);
-  const chair=put('chairDesk',.75,dk,0,0,.95,Math.PI);
+  const chair=put('chairDesk',.78,dk,0,0,1.15,Math.PI);
   if(D.qa){put('laptop',.5,dk,.5,top,0);continue;}
   dk.rotation.y=-Math.PI/2;
   const agentHandle=D.agents[i][0];const k=AG++;
@@ -171,7 +171,7 @@ DEPTS.forEach((D,di)=>{
    ch.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material=o.material.clone();o.material.envMapIntensity=.45;o.material.roughness=.55;
     if(/head|torso|body/i.test(o.name))o.material.color.lerp(tint,.5);}});
    const sc=0.55;ch.scale.setScalar(sc);
-   ch.position.set(0,.48,.95);ch.rotation.y=Math.PI;dk.add(ch);ch.userData.dyn=true;
+   ch.position.set(0,.62,1.15);ch.rotation.y=Math.PI;dk.add(ch);ch.userData.dyn=true;
    const mx=new THREE.AnimationMixer(ch);
    const sitClip=A.robot.animations.find(a=>a.name==='Sitting')||A.robot.animations.find(a=>a.name==='Idle');
    const waveClip=A.robot.animations.find(a=>a.name==='Wave')||A.robot.animations.find(a=>a.name==='ThumbsUp');
@@ -181,15 +181,15 @@ DEPTS.forEach((D,di)=>{
    robotMap[agentHandle]={ch,mx,sitAction,waveAction};
    const head=ch.getObjectByName('Head');
    WORKERS.push({ch,k,role:D.id,isRobot:true,head,ph:k*1.37});
-   const lo=new THREE.Object3D();lo.position.set(0,2.15,.96);dk.add(lo);TAGS.push({el:label(agentHandle,'lbl',0,lo),room:D.id,o:lo});
-   const bo=new THREE.Object3D();bo.position.set(0,2.6,.96);dk.add(bo);BUBBLES.push({el:label('','bubble',0,bo),role:D.id,k,o:bo});
+   const lo=new THREE.Object3D();lo.position.set(0,2.25,1.15);dk.add(lo);TAGS.push({el:label(agentHandle,'lbl',0,lo),room:D.id,o:lo});
+   const bo=new THREE.Object3D();bo.position.set(0,2.7,1.15);dk.add(bo);BUBBLES.push({el:label('','bubble',0,bo),role:D.id,k,o:bo});
    SCREENS.push({mon,kind:D.studio?2:(D.id==='tech'||D.id==='auth'?1:0)});
   }else{
    const C=A.chars[k%A.chars.length];const ch=SkeletonUtils.clone(C.scene);
    const tint=new THREE.Color('#ffffff').lerp(new THREE.Color(D.color),.3);
    ch.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material=o.material.clone();o.material.envMapIntensity=.35;o.material.roughness=.8;if(o.name.startsWith('body'))o.material.color.copy(tint);}});
    const bb=new THREE.Box3().setFromObject(ch);const H=bb.max.y-bb.min.y;const sc=(window.CHS??1.5)/H;ch.scale.setScalar(sc);
-   ch.position.set(0,0,.95);ch.rotation.y=Math.PI+(window.SR??0);dk.add(ch);ch.userData.dyn=true;
+   ch.position.set(0,0,1.15);ch.rotation.y=Math.PI+(window.SR??0);dk.add(ch);ch.userData.dyn=true;
    scene.updateMatrixWorld(true);const head=ch.getObjectByName('head');const acc=ACC[k%ACC.length];
    const hm=ch.getObjectByName('head-mesh');const hb=new THREE.Box3().setFromObject(hm);ch.updateMatrixWorld(true);
    const hw=head.getWorldPosition(new THREE.Vector3());
@@ -201,10 +201,10 @@ DEPTS.forEach((D,di)=>{
    const seatW=hit?hit.point.y:cw.y+.45;const hipL=ch.getObjectByName('leg-left'),hipR=ch.getObjectByName('leg-right');
    const hp=hipL.getWorldPosition(new THREE.Vector3()).add(hipR.getWorldPosition(new THREE.Vector3())).multiplyScalar(.5);
    const dl=dk.worldToLocal(hp.clone()),cl=dk.worldToLocal(cw.clone());
-   ch.position.y+=(seatW-hp.y)+.04*sc/0.2*0+.03;ch.position.x+=cl.x-dl.x;ch.position.z+=cl.z-dl.z;
+   ch.position.y+=(seatW-hp.y)+.26;ch.position.x+=cl.x-dl.x;ch.position.z+=cl.z-dl.z;
    WORKERS.push({ch,k,role:D.id,isRobot:false,arms:[ch.getObjectByName('arm-left'),ch.getObjectByName('arm-right')],head:ch.getObjectByName('head'),torso:ch.getObjectByName('torso'),ph:k*1.37,drv:new Set(clip.tracks.map(tr=>tr.name.split('.')[0]))});
-   const lo=new THREE.Object3D();lo.position.set(0,2.1,.85);dk.add(lo);TAGS.push({el:label(agentHandle,'lbl',0,lo),room:D.id,o:lo});
-   const bo=new THREE.Object3D();bo.position.set(0,2.55,.85);dk.add(bo);BUBBLES.push({el:label('','bubble',0,bo),role:D.id,k,o:bo});
+   const lo=new THREE.Object3D();lo.position.set(0,2.25,1.15);dk.add(lo);TAGS.push({el:label(agentHandle,'lbl',0,lo),room:D.id,o:lo});
+   const bo=new THREE.Object3D();bo.position.set(0,2.7,1.15);dk.add(bo);BUBBLES.push({el:label('','bubble',0,bo),role:D.id,k,o:bo});
    SCREENS.push({mon,kind:D.studio?2:(D.id==='tech'||D.id==='auth'?1:0)});
   }
  }
@@ -255,7 +255,7 @@ function LIFE(t,dt){
   const o=W.o||(W.o={tx:0,hy:0,a0:0,a1:0});
   const n={tx:Math.sin(t*1.6+p)*.012,hy:Math.sin(t*.35+p)*.06,a0:Math.max(0,Math.sin(t*9+p))*.035,a1:Math.max(0,Math.sin(t*9+p+2.1))*.035};
   const ap=(b,ax,k)=>{if(!b)return;b.rotation[ax]+=W.drv.has(b.name)?n[k]:n[k]-o[k];};
-  ap(W.torso,'x','tx');ap(W.head,'y','hy');{const Z=window.AZ??.78,v0=(window.AX??-.95)+n.a0,v1=(window.AX??-.95)+n.a1;W.arms[0].rotation.set(v0,0,-Z);W.arms[1].rotation.set(v1,0,Z);}W.o=n;});
+  ap(W.torso,'x','tx');ap(W.head,'y','hy');{const Z=window.AZ??.72,v0=(window.AX??-.68)+n.a0,v1=(window.AX??-.68)+n.a1;W.arms[0].rotation.set(v0,0,-Z);W.arms[1].rotation.set(v1,0,Z);}W.o=n;});
  if(t-lastScr>.125){lastScr=t;drawScreens(t);}
  if(t-lastLed>.18){lastLed=t;LEDS.forEach(m=>m.emissiveIntensity=Math.random()<.25?.4:3);}
  steam.forEach(m=>{const u=(t*.35+m.userData.ph)%1;m.position.set(Math.sin(u*9+m.userData.ph*6)*.04,1.22+u*.55,.25);m.material.opacity=.45*(1-u);m.scale.setScalar(.6+u*1.4);});
